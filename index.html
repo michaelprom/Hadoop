@@ -32,7 +32,88 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
         <h1>
-<a name="hadoop" class="anchor" href="#hadoop"><span class="octicon octicon-link"></span></a>Hadoop</h1>
+<a name="this-first-of-a-four-part-series-on-how-to-chain-and-manage-multiple-mapreduce-jobs" class="anchor" href="#this-first-of-a-four-part-series-on-how-to-chain-and-manage-multiple-mapreduce-jobs"><span class="octicon octicon-link"></span></a>This first of a four-part series on how to chain and manage multiple MapReduce Jobs.</h1>
+
+<p>Chaining and Managing Multiple MapReduce Jobs Part 1: Using a BASH Shell</p>
+
+<p>While a single MapReduce job may be sufficient for simple tasks it is fairly common for 2, 3 or more jobs to be chained together to accomplish a specific need. This series will show you how to chain jobs using the Shell, within the driver code, Job Control and lastly Oozie.</p>
+
+<h2>
+<a name="multiple-mapreduce-jobs" class="anchor" href="#multiple-mapreduce-jobs"><span class="octicon octicon-link"></span></a>Multiple MapReduce Jobs</h2>
+
+<p>This takes a basic WordCount problem and breaks it up into two MapReduce jobs. The first simply counts and  outputs  a Key (Count) and Value (Word). The second </p>
+
+<p>MapReduce job will be a Map only job. The sole purpose of this second job is to swap the Key and Value and output in sorted order. The Shell script will manage the execution of both jobs. The final output will be Key (Word) and Value (Count).</p>
+
+<p>A Shell script is simple to implement. Its fast and does not require any compiling if more jobs are added. The single script can be split into two sections.   </p>
+
+<p>Part 1) Contains the variables to define the Jar Files, Input Directory (shakespeare) as well as the commands to execute the MapReduce Jobs.
+    **Note: ** COMMON_TEMP serves as the output of the 1st job and input of the second job.</p>
+
+<pre><code>#!/bin/bash
+# Jar file definition
+MAPREDUCE_JAR_JOB1="WordCount.jar"
+MAPREDUCE_JAR_JOB2="WordCountTranspose.jar"
+
+MAIN_CLASS_JOB1="WordCount"
+MAIN_CLASS_JOB2="WordCountTranspose"
+
+HADOOP="$( which hadoop )"
+
+INPUT_DIRECTORY="shakespeare"
+COMMON_TEMP="TEMP_DIR"
+FINAL_OUTPUT="JOB_CHAIN_RESULTS"
+
+
+JOB_1_CMD="${HADOOP} jar ${MAPREDUCE_JAR_JOB1} ${MAIN_CLASS_JOB1}  \ 
+${INPUT_DIRECTORY} ${COMMON_TEMP}"
+
+JOB_2_CMD="${HADOOP} jar ${MAPREDUCE_JAR_JOB2} ${MAIN_CLASS_JOB2} \ 
+${COMMON_TEMP} ${FINAL_OUTPUT}"
+
+
+CAT_FINAL_OUTPUT_CMD="${HADOOP} fs -cat ${FINAL_OUTPUT}/part-*"
+CLEANUP_CMD="${HADOOP} fs -rm -r ${COMMON_TEMP} ${FINAL_OUTPUT}"
+LOG_FILE="LOG_`date +%s`.txt"
+</code></pre>
+
+<p>Part 2) Manages the execution of the commands. This will ensure that the jobs run in sequential order and will exit if any jobs fail.</p>
+
+<pre><code>{
+${CLEANUP_CMD}
+${JOB_1_CMD}
+if [ $? -ne 0 ]
+then
+echo "ERROR FIRST JOB. SEE LOG."
+${CLEANUP_CMD} 
+exit $?
+fi
+echo ${JOB_2_CMD}
+${JOB_2_CMD}
+if [ $? -ne 0 ]
+then
+echo "ERROR SECOND JOB. SEE LOG."
+${CLEANUP_CMD}
+exit $?
+fi
+echo ${CAT_FINAL_OUTPUT_CMD}
+${CAT_FINAL_OUTPUT_CMD}
+${CLEANUP_CMD}
+exit 0
+} &amp;&gt; ${LOG_FILE}
+</code></pre>
+
+<p>Part 3) Lastly the LOG_FILE will show the output of the two MapReduce jobs and any errors if they exist.</p>
+
+<h2>
+<a name="summary" class="anchor" href="#summary"><span class="octicon octicon-link"></span></a>Summary</h2>
+
+<p>As noted in above example you can scale this up to many jobs. The advantages of this method is that since it is done in the shell no recompiling is needed. One con is that jobs run in this manner can only be done sequentially. The following parts in this series will show you more efficient ways to managing large number of jobs. </p>
+
+<h2>
+<a name="references" class="anchor" href="#references"><span class="octicon octicon-link"></span></a>References</h2>
+
+<p>Miner and Shook. <em>MapReduce Design Patterns: Building Effective Algorithms and Analytics for Hadoop and Other Systems.</em> O'Reilly 2013</p>
       </section>
     </div>
 
