@@ -1,0 +1,76 @@
+# Loading CSV Data Into Hive
+
+Michael Prom 
+11/16/2013
+
+### This how to will show you how to load csv data into Hive. 
+---
+For those who are more familar with SQL based queries. HIVE is built on top of the Hadoop framework to help with querying large amounts of data. HiveQL is very much similar to SQL. By loading data into Hive you can perform queries as you would using SQL but using data that resides in HDFS. 
+
+## Loading Data 
+  
+The data I have is taken from http://www.infochimps.com/datasets/nyse-daily-1970-2010-open-close-high-low-and-volume.  There is the schema of the file along with one record:
+
+    exchange,stock_symbol,date,stock_price_open,stock_price_high,stock_price_low,stock_price_close,stock_volume,stock_price_adj_close
+    NYSE,EXI,2010-02-08,43.04,43.06,42.45,42.51,53000,42.51
+ 
+
+## Using the Hive Shell
+
+The first step is to get into the Hive Shell. All you need to do is type in "Hive"
+
+    Logging initialized using configuration in jar:file:/opt/cloudera/parcels/CDH-4.4.0-1.cdh4.4.0.p0.39/lib/hive/lib/hive-common-0.10.0-cdh4.4.0.jar!/hive-log4j.properties
+    Hive history file=/tmp/prom9473/hive_job_log_53331a21-cac3-423b-9573-211c1883f7e9_2102019621.txt
+    hive>
+
+You will see the hive prompt. You can now continue with your commands.
+
+## Create Table
+
+The first step in loading data into hive is creating a table which you will load your csv data. In this example I create a table called nyse followed by the column name and type. 
+
+    CREATE TABLE nyse(exchange string,stock_symbol string ,`date` timestamp,stock_price_open double,stock_price_high double,stock_price_low double,stock_price_close double,stock_volume bigint,stock_price_adj_close double) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+
+You will need to the row format to be delimited by ','.  **Note:** date is a reserved word in Hive. To use a reserved word place ` around the word. For example:
+
+    `date`  
+
+Now execute the CREATE TABLE Statement.
+
+    hive> CREATE TABLE nyse(exchange string,stock_symbol string ,`date` timestamp,stock_price_open double,stock_price_high double,stock_price_low double,stock_price_close double,stock_volume bigint,stock_price_adj_close double) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
+    OK
+    Time taken: 0.347 seconds
+
+Each line should end with a semicolon to note that it is the end of line. Here I've executed a show tables to show all the tables within my instance of Hive. (I created the nasdaq one earlier). 
+
+
+    hive> show tables;
+    nasdaq
+    nyse
+    Time taken: 1.837 seconds
+
+## Load The Data
+
+Now that the table is created. You can now load the CSV data into hive. The data is outside of HDFS in my nyse directory.
+
+     LOAD DATA LOCAL INPATH '/home/user/infochimps_dataset_4777_download_16185-csv/infochimps_dataset_4777_download_16185/NYSE/*.csv' INTO TABLE nyse;
+
+
+## Querying the Data
+
+Now that the data is loaded. You can run your queries. 
+
+    select distinct stock_symbol from nasdaq where stock_price_close > 50;
+
+    ZOLT
+    ZRAN
+    ZUMZ
+    Time taken: 20.849 seconds
+
+
+## References
+
+Dataset
+
+NYSE Daily 1970-2010 Open, Close, High, Low and Volume  Added By Infochimps 
+http://www.infochimps.com/datasets/nyse-daily-1970-2010-open-close-high-low-and-volume
